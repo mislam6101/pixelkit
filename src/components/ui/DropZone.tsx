@@ -98,12 +98,12 @@ export function DropZone({
         <UploadCloud className="w-7 h-7" aria-hidden="true" />
       </div>
 
-      <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
+      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
         Drop your image here, or{' '}
         <span className="text-blue-600 dark:text-blue-400 underline decoration-blue-300 dark:decoration-blue-700 underline-offset-4">
           browse
         </span>
-      </h3>
+      </p>
 
       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">
         Supports JPG, PNG, and WebP up to 8192px.

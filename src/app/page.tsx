@@ -46,9 +46,6 @@ export default function HomePage() {
   // Interactive Explainer state
   const [explainerQuality, setExplainerQuality] = useState<'high' | 'balanced' | 'compact'>('balanced');
 
-  // Interactive FAQ state (null = all collapsed, number = open index)
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-
   const handleHomepageFileSelect = (file: File) => {
     setSelectedFile(file);
     stageFile(file);
@@ -60,6 +57,45 @@ export default function HomePage() {
       stageFile(selectedFile);
     }
   };
+
+  // Visible FAQ Content (Single Source of Truth for UI & Structured Data)
+  const faqs = [
+    {
+      question: 'Is PhotoKit completely free to use?',
+      answer:
+        'Yes. PhotoKit is 100% free with no subscriptions, accounts, or usage quotas. Because all image processing executes locally in your browser using HTML5 Canvas, zero server compute overhead is incurred.',
+    },
+    {
+      question: 'Are my images uploaded to any remote server or cloud?',
+      answer:
+        'No. PhotoKit is designed from the ground up as a client-side utility. Your images never travel over the network; compression, resizing, and transcoding occur entirely within isolated browser memory on your device.',
+    },
+    {
+      question: 'How do I compress an image to an exact 50KB or 20KB file size?',
+      answer:
+        'Upload your image to the Image Compressor, select "Target File Size" mode, click the 50 KB or 20 KB preset, and click Compress. PhotoKit runs a 7-step binary bisection algorithm to identify the highest possible visual quality factor whose output bytes strictly do not exceed your target threshold.',
+    },
+    {
+      question: 'Which image formats does PhotoKit support?',
+      answer:
+        'PhotoKit supports JPEG (.jpg, .jpeg), PNG (.png), and WebP (.webp). You can compress, resize, or transcode between any combination of these three formats.',
+    },
+    {
+      question: 'What is the difference between JPG, PNG, and WebP?',
+      answer:
+        'JPG is standard for photographs and gradients without transparency. PNG is lossless and supports transparent alpha channels, but produces larger file sizes. WebP is a modern web standard that combines transparent channels with superior lossy compression, generating files 30% to 80% smaller than JPG or PNG.',
+    },
+    {
+      question: 'Can I resize an image without changing its aspect ratio?',
+      answer:
+        'Yes. In the Image Resizer, the Aspect Ratio Lock is turned on by default. Entering a new width automatically adjusts the height proportionally to prevent any stretching or distortion.',
+    },
+    {
+      question: 'Does PhotoKit work on mobile phones and tablets?',
+      answer:
+        'Yes. PhotoKit is fully responsive and functions seamlessly on mobile Safari and Chrome. In addition, built-in memory safeguards prevent mobile browser crashes when handling large camera photos.',
+    },
+  ];
 
   // Structured Data for SEO / AEO
   const jsonLd = {
@@ -100,64 +136,14 @@ export default function HomePage() {
       {
         '@type': 'FAQPage',
         '@id': 'https://photokit-app.pages.dev/#faq',
-        mainEntity: [
-          {
-            '@type': 'Question',
-            name: 'Is PhotoKit completely free to use?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'Yes. PhotoKit is 100% free with no subscription, no account registration, and no hidden usage limits. Because all processing executes locally in your browser via HTML5 Canvas, there are zero server costs passed to users.',
-            },
+        mainEntity: faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
           },
-          {
-            '@type': 'Question',
-            name: 'Are my images ever uploaded to a server?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'No. PhotoKit executes entirely inside your browser using client-side HTML5 Canvas APIs. Your images, files, and EXIF metadata never leave your computer or mobile device.',
-            },
-          },
-          {
-            '@type': 'Question',
-            name: 'How can I compress an image to an exact 50KB target?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'Navigate to the Image Compressor tool, select the "Target File Size" mode, choose the "50 KB" preset (or input custom KB), and click Compress. PhotoKit uses an invariant-guaranteed 7-step bisection algorithm to calculate the optimal quality factor where the resulting file never exceeds 50KB.',
-            },
-          },
-          {
-            '@type': 'Question',
-            name: 'Which image formats does PhotoKit support?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'PhotoKit supports standard JPEG (.jpg, .jpeg), PNG (.png), and WebP (.webp) formats for compression, dimension resizing, and bidirectional format conversion.',
-            },
-          },
-          {
-            '@type': 'Question',
-            name: 'What is the practical difference between JPG, PNG, and WebP?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'JPEG is ideal for photographs with rich gradients. PNG is lossless and preserves transparency, but produces larger files. WebP is a modern web format supporting both lossy compression and alpha transparency, typically creating files 30% to 80% smaller than PNG or JPG at equivalent visual quality.',
-            },
-          },
-          {
-            '@type': 'Question',
-            name: 'Can I resize an image without changing or distorting its aspect ratio?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'Yes. The Image Resizer has an "Aspect Ratio Lock" enabled by default. Adjusting either the width or height automatically updates the opposite dimension proportionally.',
-            },
-          },
-          {
-            '@type': 'Question',
-            name: 'Does PhotoKit work on mobile phones and tablets?',
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: 'Yes. PhotoKit runs in any modern mobile browser including iOS Safari and Android Chrome, with adaptive hardware safety checks that warn when processing extremely high-resolution images in mobile memory.',
-            },
-          },
-        ],
+        })),
       },
     ],
   };
@@ -172,7 +158,7 @@ export default function HomePage() {
         'PNG smart optimization notice: Automatically recommends WebP conversion when lossy compression of transparent PNGs is required.',
       ],
       ctaText: 'Open Image Compressor',
-      href: '/compressor',
+      href: '/compressor/',
       icon: <SlidersHorizontal className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
       accentColor: 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400',
     },
@@ -185,7 +171,7 @@ export default function HomePage() {
         'Hardware safety safeguards: Enforces 8192px maximum bounds and 16.7M pixel area protection against memory crashes.',
       ],
       ctaText: 'Open Image Resizer',
-      href: '/resizer',
+      href: '/resizer/',
       icon: <Maximize2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
       accentColor: 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400',
     },
@@ -198,7 +184,7 @@ export default function HomePage() {
         'Client-side privacy: Zero server uploads, metadata sanitization, and instant lossless or lossy re-encoding.',
       ],
       ctaText: 'Open Image Converter',
-      href: '/converter',
+      href: '/converter/',
       icon: <RefreshCw className="w-5 h-5 text-purple-600 dark:text-purple-400" />,
       accentColor: 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400',
     },
@@ -208,7 +194,7 @@ export default function HomePage() {
     {
       title: 'Free Image Compressor',
       description: 'Compress JPG, PNG, and WebP images to exact target file sizes (20KB, 50KB, 100KB) with strict mathematical size guarantees.',
-      href: '/compressor',
+      href: '/compressor/',
       icon: <SlidersHorizontal className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
       badge: 'Target-KB Engine',
       accent: 'border-blue-200 dark:border-blue-900/60 hover:border-blue-400',
@@ -217,7 +203,7 @@ export default function HomePage() {
     {
       title: 'Online Image Resizer',
       description: 'Scale pixel dimensions with strict aspect-ratio locks, quick social presets, and browser hardware safety limits up to 8192px.',
-      href: '/resizer',
+      href: '/resizer/',
       icon: <Maximize2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
       badge: 'Aspect Lock',
       accent: 'border-emerald-200 dark:border-emerald-900/60 hover:border-emerald-400',
@@ -226,7 +212,7 @@ export default function HomePage() {
     {
       title: 'Image Format Converter',
       description: 'Transcode between JPEG, PNG, and WebP with configurable alpha-channel flattening and custom background color fill.',
-      href: '/converter',
+      href: '/converter/',
       icon: <RefreshCw className="w-5 h-5 text-purple-600 dark:text-purple-400" />,
       badge: 'Alpha Flattening',
       accent: 'border-purple-200 dark:border-purple-900/60 hover:border-purple-400',
@@ -257,44 +243,6 @@ export default function HomePage() {
       badge: 'Strict Portal Limits',
     },
   };
-
-  const faqs = [
-    {
-      question: 'Is PhotoKit completely free to use?',
-      answer:
-        'Yes. PhotoKit is 100% free with no subscriptions, accounts, or usage quotas. Because all image processing executes locally in your browser using HTML5 Canvas, zero server compute overhead is incurred.',
-    },
-    {
-      question: 'Are my images uploaded to any remote server or cloud?',
-      answer:
-        'No. PhotoKit is designed from the ground up as a client-side utility. Your images never travel over the network; compression, resizing, and transcoding occur entirely within isolated browser memory on your device.',
-    },
-    {
-      question: 'How do I compress an image to an exact 50KB or 20KB file size?',
-      answer:
-        'Upload your image to the Image Compressor, select "Target File Size" mode, click the 50 KB or 20 KB preset, and click Compress. PhotoKit runs a 7-step binary bisection algorithm to identify the highest possible visual quality factor whose output bytes strictly do not exceed your target threshold.',
-    },
-    {
-      question: 'Which image formats does PhotoKit support?',
-      answer:
-        'PhotoKit supports JPEG (.jpg, .jpeg), PNG (.png), and WebP (.webp). You can compress, resize, or transcode between any combination of these three formats.',
-    },
-    {
-      question: 'What is the difference between JPG, PNG, and WebP?',
-      answer:
-        'JPG is standard for photographs and gradients without transparency. PNG is lossless and supports transparent alpha channels, but produces larger file sizes. WebP is a modern web standard that combines transparent channels with superior lossy compression, generating files 30% to 80% smaller than JPG or PNG.',
-    },
-    {
-      question: 'Can I resize an image without changing its aspect ratio?',
-      answer:
-        'Yes. In the Image Resizer, the Aspect Ratio Lock is turned on by default. Entering a new width automatically adjusts the height proportionally to prevent any stretching or distortion.',
-    },
-    {
-      question: 'Does PhotoKit work on mobile phones and tablets?',
-      answer:
-        'Yes. PhotoKit is fully responsive and functions seamlessly on mobile Safari and Chrome. In addition, built-in memory safeguards prevent mobile browser crashes when handling large camera photos.',
-    },
-  ];
 
   return (
     <>
@@ -354,24 +302,24 @@ export default function HomePage() {
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                   <Link
-                    href="/compressor"
-                    onClick={() => handleStageAndNavigate('/compressor')}
+                    href="/compressor/"
+                    onClick={() => handleStageAndNavigate('/compressor/')}
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-xs"
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                     <span>Compress to Target KB</span>
                   </Link>
                   <Link
-                    href="/resizer"
-                    onClick={() => handleStageAndNavigate('/resizer')}
+                    href="/resizer/"
+                    onClick={() => handleStageAndNavigate('/resizer/')}
                     className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
                   >
                     <Maximize2 className="w-4 h-4" />
                     <span>Resize Dimensions</span>
                   </Link>
                   <Link
-                    href="/converter"
-                    onClick={() => handleStageAndNavigate('/converter')}
+                    href="/converter/"
+                    onClick={() => handleStageAndNavigate('/converter/')}
                     className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-700 transition-colors shadow-xs"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -769,33 +717,20 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-3">
-            {faqs.map((faq, index) => {
-              const isOpen = openFaqIndex === index;
-              return (
-                <div
-                  key={index}
-                  className="rounded-xl border border-slate-200 bg-white transition-all dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-xs"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                    className="flex w-full items-center justify-between p-4 text-left font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400"
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
-                        isOpen ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className="px-4 pb-4 pt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800/60">
-                      {faq.answer}
-                    </div>
-                  )}
+            {faqs.map((faq, index) => (
+              <details
+                key={index}
+                className="group rounded-xl border border-slate-200 bg-white transition-all dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-xs"
+              >
+                <summary className="flex w-full cursor-pointer list-none items-center justify-between p-4 text-left font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 [&::-webkit-details-marker]:hidden">
+                  <span>{faq.question}</span>
+                  <ChevronDown className="w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 group-open:rotate-180 group-open:text-blue-600 dark:group-open:text-blue-400" />
+                </summary>
+                <div className="px-4 pb-4 pt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800/60">
+                  {faq.answer}
                 </div>
-              );
-            })}
+              </details>
+            ))}
           </div>
         </section>
 
@@ -817,24 +752,24 @@ export default function HomePage() {
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
-              href="/compressor"
-              onClick={() => handleStageAndNavigate('/compressor')}
+              href="/compressor/"
+              onClick={() => handleStageAndNavigate('/compressor/')}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               <SlidersHorizontal className="w-4 h-4" />
               <span>Compress Image</span>
             </Link>
             <Link
-              href="/resizer"
-              onClick={() => handleStageAndNavigate('/resizer')}
+              href="/resizer/"
+              onClick={() => handleStageAndNavigate('/resizer/')}
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
             >
               <Maximize2 className="w-4 h-4" />
               <span>Resize Dimensions</span>
             </Link>
             <Link
-              href="/converter"
-              onClick={() => handleStageAndNavigate('/converter')}
+              href="/converter/"
+              onClick={() => handleStageAndNavigate('/converter/')}
               className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-purple-700 transition-colors shadow-sm"
             >
               <RefreshCw className="w-4 h-4" />
