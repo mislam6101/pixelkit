@@ -10,7 +10,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-6">
           {/* Brand info */}
           <div className="flex items-center gap-3">
-            <Link href="/" aria-label="PixelKit Home" className="flex items-center">
+            <Link href="/" aria-label="PhotoKit Home" className="flex items-center">
               <Logo size="sm" />
             </Link>
           </div>
@@ -46,7 +46,7 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
-            <span>© {new Date().getFullYear()} PixelKit. Free & open browser utility.</span>
+            <span>© {new Date().getFullYear()} PhotoKit. Free & open browser utility.</span>
           </div>
         </div>
       </div>

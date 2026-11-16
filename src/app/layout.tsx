@@ -5,8 +5,8 @@ import { StagedImageProvider } from '@/context/StagedImageContext';
 
 export const metadata: Metadata = {
   title: {
-    default: 'PixelKit — Browser-Native Image Compressor, Resizer & Converter',
-    template: '%s | PixelKit',
+    default: 'PhotoKit — Browser-Native Image Compressor, Resizer & Converter',
+    template: '%s | PhotoKit',
   },
   description:
     'High-performance, private image processing studio running 100% in your browser. Compress images to exact KB targets, resize with aspect-ratio locks, and convert between JPEG, PNG, and WebP with zero server uploads.',
@@ -21,21 +21,21 @@ export const metadata: Metadata = {
     'client-side image tools',
     'browser canvas image compressor',
   ],
-  authors: [{ name: 'PixelKit' }],
-  creator: 'PixelKit',
-  metadataBase: new URL('https://pixelkit.local'),
+  authors: [{ name: 'PhotoKit' }],
+  creator: 'PhotoKit',
+  metadataBase: new URL('https://photokit-app.pages.dev'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://pixelkit.local',
-    title: 'PixelKit — Browser-Native Image Compressor, Resizer & Converter',
+    url: 'https://photokit-app.pages.dev',
+    title: 'PhotoKit — Browser-Native Image Compressor, Resizer & Converter',
     description:
       'Fast, private image optimization running entirely in your browser using HTML5 Canvas. Compress to target KB, resize, and convert formats with instant downloads.',
-    siteName: 'PixelKit',
+    siteName: 'PhotoKit',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PixelKit — Browser-Native Image Tools',
+    title: 'PhotoKit — Browser-Native Image Tools',
     description:
       'Compress to exact KB sizes, resize, and convert formats directly in your browser. Private, fast, zero uploads.',
   },
@@ -65,7 +65,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem('pixelkit-theme');
+                const theme = localStorage.getItem('photokit-theme') || localStorage.getItem('pixelkit-theme');
                 if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark');
                 } else {

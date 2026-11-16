@@ -19,7 +19,7 @@ export function useTheme() {
     setTheme(nextTheme);
 
     try {
-      localStorage.setItem('pixelkit-theme', nextTheme);
+      localStorage.setItem('photokit-theme', nextTheme);
     } catch (_) {
       // LocalStorage access may fail in private mode
     }

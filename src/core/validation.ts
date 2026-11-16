@@ -76,7 +76,7 @@ export async function detectMimeTypeFromMagicBytes(file: File | Blob): Promise<S
 
   throw new ProcessingError(
     'INVALID_FILE_TYPE',
-    `Unsupported or unverified image format. PixelKit supports JPEG, PNG, and WebP files.`,
+    `Unsupported or unverified image format. PhotoKit supports JPEG, PNG, and WebP files.`,
     { detectedBytes: Array.from(bytes.slice(0, 4)) }
   );
 }

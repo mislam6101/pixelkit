@@ -1,6 +1,6 @@
 {
-  "name": "PixelKit",
-  "short_name": "PixelKit",
+  "name": "PhotoKit",
+  "short_name": "PhotoKit",
   "description": "Fast, private, client-side image compression, resizing, and conversion.",
   "start_url": "/",
   "display": "standalone",

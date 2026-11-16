@@ -150,7 +150,7 @@ export function useImageProcessor(): UseImageProcessorReturn {
       if (!filename) {
         const originalBase = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
         const ext = result.mimeType === 'image/jpeg' ? 'jpg' : result.mimeType === 'image/webp' ? 'webp' : 'png';
-        filename = `${originalBase}-pixelkit.${ext}`;
+        filename = `${originalBase}-photokit.${ext}`;
       }
 
       const link = document.createElement('a');

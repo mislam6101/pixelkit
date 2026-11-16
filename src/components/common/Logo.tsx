@@ -136,7 +136,7 @@ export function Logo({
       {!iconOnly && (
         <div className="flex flex-col leading-none">
           <span className={cn('font-bold tracking-tight text-slate-900 dark:text-slate-100', textSizeClasses)}>
-            Pixel<span className="text-blue-600 dark:text-blue-400">Kit</span>
+            Photo<span className="text-blue-600 dark:text-blue-400">Kit</span>
           </span>
           <span className="text-[10px] font-medium tracking-wide text-slate-400 dark:text-slate-500 mt-0.5">
             Client-Side Image Studio

@@ -1,5 +1,5 @@
 /**
- * PixelKit Core Engine Test Suite
+ * PhotoKit Core Engine Test Suite
  * Executed under Node.js 24 with mocked DOM/Canvas environments
  */
 
@@ -72,7 +72,7 @@ function assert(condition: boolean, testName: string, failureDetails?: string) {
 }
 
 async function runTests() {
-  console.log('=== Running PixelKit Core Engine Test Suite ===\n');
+  console.log('=== Running PhotoKit Core Engine Test Suite ===\n');
 
   // ---------------------------------------------------------------------------
   // 1. Magic Bytes & MIME Validation

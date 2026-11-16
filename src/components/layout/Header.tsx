@@ -52,7 +52,7 @@ export function Header() {
         <Link
           href="/"
           className="group flex items-center outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-0.5"
-          aria-label="PixelKit Home"
+          aria-label="PhotoKit Home"
         >
           <Logo size="md" />
         </Link>
