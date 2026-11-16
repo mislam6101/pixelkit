@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Image Resizer',
   description:
-    'Resize JPG, PNG, and WebP image dimensions up to 8192px with strict aspect-ratio locks and quick resolution presets. 100% private local processing.',
+    'Resize JPG, PNG, and WebP image dimensions up to 8192px with aspect-ratio locks and resolution presets. Images are processed locally in your browser and are not uploaded to our servers.',
   alternates: {
     canonical: 'https://photokit-app.pages.dev/resizer/',
   },
   openGraph: {
     title: 'Image Resizer | PhotoKit',
     description:
-      'Scale image dimensions with proportional aspect ratio locks and resolution presets directly in your browser.',
+      'Scale image dimensions proportionally with aspect ratio locks and resolution presets directly in your browser. Images are processed locally in your browser and are not uploaded to our servers.',
     url: 'https://photokit-app.pages.dev/resizer/',
   },
 };
