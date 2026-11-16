@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://photokit-app.pages.dev/sitemap.xml
