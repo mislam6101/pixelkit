@@ -17,6 +17,14 @@ import { ProcessingError, SupportedMimeType } from '@/core/types';
 import { formatBytes } from '@/lib/utils';
 import { useStagedImage } from '@/context/StagedImageContext';
 import {
+  trackToolModeSelected,
+  trackToolStarted,
+  trackProcessingCompleted,
+  trackProcessingError,
+  PermittedPreset,
+  PermittedErrorCode,
+} from '@/lib/analytics';
+import {
   Maximize2,
   Lock,
   Unlock,
@@ -54,7 +62,7 @@ export default function ResizerPage() {
     clearError,
     clear,
     downloadResult,
-  } = useImageProcessor();
+  } = useImageProcessor('resizer');
 
   const { stagedFile, consumeStagedFile } = useStagedImage();
   const ingestedFileRef = useRef<File | null>(null);
@@ -142,6 +150,14 @@ export default function ResizerPage() {
     setWidth(targetW);
     setHeight(targetH);
     checkDimensionSafety(targetW, targetH);
+
+    const presetCode: PermittedPreset = scale === 0.5 ? 'preset_50_percent' : scale === 0.75 ? 'preset_75_percent' : 'custom';
+    trackToolModeSelected({
+      toolName: 'resizer',
+      actionType: 'preset_select',
+      mode: 'dimensions',
+      preset: presetCode,
+    });
   };
 
   const applyBoxPreset = (boxW: number, boxH: number) => {
@@ -156,6 +172,26 @@ export default function ResizerPage() {
       setHeight(boxH);
       checkDimensionSafety(boxW, boxH);
     }
+
+    const presetCode: PermittedPreset =
+      boxW === 1920 && boxH === 1080
+        ? 'preset_fhd'
+        : boxW === 1280 && boxH === 720
+        ? 'preset_hd'
+        : boxW === 1200 && boxH === 630
+        ? 'preset_web'
+        : boxW === 1080 && boxH === 1080
+        ? 'preset_square'
+        : boxW === 400 && boxH === 400
+        ? 'preset_avatar'
+        : 'custom';
+
+    trackToolModeSelected({
+      toolName: 'resizer',
+      actionType: 'preset_select',
+      mode: 'dimensions',
+      preset: presetCode,
+    });
   };
 
   const handleRunResize = async () => {
@@ -171,6 +207,11 @@ export default function ResizerPage() {
     setIsProcessing(true);
     clearError();
 
+    trackToolStarted({
+      toolName: 'resizer',
+      mode: 'dimensions',
+    });
+
     try {
       const mimeType: SupportedMimeType =
         targetFormat === 'original' ? metadata.mimeType : targetFormat;
@@ -184,14 +225,24 @@ export default function ResizerPage() {
       });
 
       setResult(res);
+      trackProcessingCompleted({
+        toolName: 'resizer',
+        mode: 'dimensions',
+      });
     } catch (err: unknown) {
+      let sanitizedCode: PermittedErrorCode = 'unknown_error';
       if (err instanceof ProcessingError) {
+        if (err.code === 'DIMENSION_EXCEEDED') sanitizedCode = 'dimensions_exceed_limit';
+        else if (err.code === 'PIXEL_AREA_EXCEEDED') sanitizedCode = 'surface_area_exceed_limit';
+        else if (err.code === 'CANVAS_ENCODING_FAILED') sanitizedCode = 'canvas_encoding_failed';
+        else if (err.code === 'CANVAS_ENCODING_TIMEOUT') sanitizedCode = 'canvas_encoding_timeout';
         setActionError(err.message);
       } else if (err instanceof Error) {
         setActionError(err.message);
       } else {
         setActionError('Failed to resize image.');
       }
+      trackProcessingError('resizer', sanitizedCode);
     } finally {
       setIsProcessing(false);
     }

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { formatBytes } from '@/lib/utils';
 import { useStagedImage } from '@/context/StagedImageContext';
+import { trackFileSelected } from '@/lib/analytics';
 
 export default function HomePage() {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function HomePage() {
   const handleHomepageFileSelect = (file: File) => {
     setSelectedFile(file);
     stageFile(file);
+    trackFileSelected('homepage');
   };
 
   const handleStageAndNavigate = (href: string) => {

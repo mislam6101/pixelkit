@@ -22,19 +22,19 @@ export function Header() {
   const navItems = [
     {
       name: 'Compressor',
-      href: '/compressor',
+      href: '/compressor/',
       icon: <SlidersHorizontal className="w-4 h-4" />,
       description: 'Compress JPG, PNG & WebP to exact target sizes',
     },
     {
       name: 'Resizer',
-      href: '/resizer',
+      href: '/resizer/',
       icon: <Maximize2 className="w-4 h-4" />,
       description: 'Scale dimensions with aspect ratio lock',
     },
     {
       name: 'Converter',
-      href: '/converter',
+      href: '/converter/',
       icon: <RefreshCw className="w-4 h-4" />,
       description: 'Transcode between JPG, PNG & WebP',
     },

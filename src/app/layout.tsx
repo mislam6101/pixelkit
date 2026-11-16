@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/layout';
 import { StagedImageProvider } from '@/context/StagedImageContext';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { ConsentBanner } from '@/components/analytics/ConsentBanner';
+import { PrivacySettingsModal } from '@/components/analytics/PrivacySettingsModal';
 
 export const metadata: Metadata = {
   title: {
@@ -24,6 +27,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'PhotoKit' }],
   creator: 'PhotoKit',
   metadataBase: new URL('https://photokit-app.pages.dev'),
+  alternates: {
+    canonical: './',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -77,9 +83,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100 selection:bg-blue-500 selection:text-white">
+        <GoogleAnalytics />
         <StagedImageProvider>
           <AppShell>{children}</AppShell>
         </StagedImageProvider>
+        <ConsentBanner />
+        <PrivacySettingsModal />
       </body>
     </html>
   );

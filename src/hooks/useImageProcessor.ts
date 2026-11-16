@@ -8,6 +8,13 @@ import {
 } from '@/core/types';
 import { inspectImage } from '@/core/validation';
 import { revokeObjectUrl } from '@/core/cleanup';
+import {
+  ToolName,
+  trackFileSelected,
+  trackDownloadClicked,
+  trackProcessingError,
+  PermittedErrorCode,
+} from '@/lib/analytics';
 
 export interface UseImageProcessorReturn {
   file: File | null;
@@ -27,7 +34,7 @@ export interface UseImageProcessorReturn {
   downloadResult: (customFilename?: string) => void;
 }
 
-export function useImageProcessor(): UseImageProcessorReturn {
+export function useImageProcessor(toolName: ToolName = 'compressor'): UseImageProcessorReturn {
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<ImageMetadata | null>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
@@ -111,31 +118,42 @@ export function useImageProcessor(): UseImageProcessorReturn {
           );
         }
 
+        trackFileSelected(toolName);
         return true;
       } catch (err: unknown) {
+        let sanitizedCode: PermittedErrorCode = 'unknown_error';
         if (err instanceof ProcessingError) {
           setError({
             code: err.code,
             message: err.message,
             details: err.details,
           });
+          if (err.code === 'CORRUPTED_FILE') sanitizedCode = 'corrupted_file';
+          else if (err.code === 'INVALID_FILE_TYPE') sanitizedCode = 'invalid_file_type';
+          else if (err.code === 'DIMENSION_EXCEEDED') sanitizedCode = 'dimensions_exceed_limit';
+          else if (err.code === 'PIXEL_AREA_EXCEEDED') sanitizedCode = 'surface_area_exceed_limit';
+          else sanitizedCode = 'load_failed';
         } else if (err instanceof Error) {
           setError({
             code: 'LOAD_FAILED',
             message: err.message || 'Failed to load and inspect image.',
           });
+          sanitizedCode = 'load_failed';
         } else {
           setError({
             code: 'UNKNOWN_ERROR',
             message: 'An unexpected error occurred while loading the image.',
           });
+          sanitizedCode = 'unknown_error';
         }
+
+        trackProcessingError(toolName, sanitizedCode);
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    [clear]
+    [clear, toolName]
   );
 
   const clearError = useCallback(() => {
@@ -159,8 +177,10 @@ export function useImageProcessor(): UseImageProcessorReturn {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      trackDownloadClicked(toolName);
     },
-    [result, file]
+    [result, file, toolName]
   );
 
   return {

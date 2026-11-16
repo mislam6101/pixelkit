@@ -16,6 +16,13 @@ import { ProcessingError, SupportedMimeType } from '@/core/types';
 import { formatBytes } from '@/lib/utils';
 import { useStagedImage } from '@/context/StagedImageContext';
 import {
+  trackToolModeSelected,
+  trackToolStarted,
+  trackProcessingCompleted,
+  trackProcessingError,
+  PermittedErrorCode,
+} from '@/lib/analytics';
+import {
   RefreshCw,
   Palette,
   CheckCircle2,
@@ -72,7 +79,7 @@ export default function ConverterPage() {
     clearError,
     clear,
     downloadResult,
-  } = useImageProcessor();
+  } = useImageProcessor('converter');
 
   const { stagedFile, consumeStagedFile } = useStagedImage();
   const ingestedFileRef = useRef<File | null>(null);
@@ -110,6 +117,11 @@ export default function ConverterPage() {
     setActionError(null);
     clearError();
 
+    trackToolStarted({
+      toolName: 'converter',
+      mode: 'transcode',
+    });
+
     try {
       const res = await convertImageFormat(imageElement, {
         targetMimeType: targetMime,
@@ -118,14 +130,23 @@ export default function ConverterPage() {
       });
 
       setResult(res);
+      trackProcessingCompleted({
+        toolName: 'converter',
+        mode: 'transcode',
+      });
     } catch (err: unknown) {
+      let sanitizedCode: PermittedErrorCode = 'unknown_error';
       if (err instanceof ProcessingError) {
+        if (err.code === 'CANVAS_ENCODING_FAILED') sanitizedCode = 'canvas_encoding_failed';
+        else if (err.code === 'CANVAS_ENCODING_TIMEOUT') sanitizedCode = 'canvas_encoding_timeout';
+        else if (err.code === 'INVALID_FILE_TYPE') sanitizedCode = 'invalid_file_type';
         setActionError(err.message);
       } else if (err instanceof Error) {
         setActionError(err.message);
       } else {
         setActionError('Failed to convert image format.');
       }
+      trackProcessingError('converter', sanitizedCode);
     } finally {
       setIsProcessing(false);
     }
@@ -241,7 +262,14 @@ export default function ConverterPage() {
                   return (
                     <div
                       key={opt.mime}
-                      onClick={() => setTargetMime(opt.mime)}
+                      onClick={() => {
+                        setTargetMime(opt.mime);
+                        trackToolModeSelected({
+                          toolName: 'converter',
+                          actionType: 'mode_switch',
+                          mode: 'transcode',
+                        });
+                      }}
                       className={`cursor-pointer rounded-xl border p-4 transition-all ${
                         isSelected
                           ? 'border-purple-600 bg-purple-50/60 dark:border-purple-500 dark:bg-purple-950/40 ring-2 ring-purple-500/20'

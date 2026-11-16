@@ -1,7 +1,10 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/common/Logo';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Settings } from 'lucide-react';
+import { openPrivacySettings } from '@/components/analytics/PrivacySettingsModal';
 
 export function Footer() {
   return (
@@ -18,23 +21,37 @@ export function Footer() {
           {/* Quick links */}
           <nav className="flex flex-wrap items-center gap-6 text-xs text-slate-600 dark:text-slate-400">
             <Link
-              href="/compressor"
+              href="/compressor/"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Compressor
             </Link>
             <Link
-              href="/resizer"
+              href="/resizer/"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Resizer
             </Link>
             <Link
-              href="/converter"
+              href="/converter/"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Converter
             </Link>
+            <Link
+              href="/privacy-policy/"
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <button
+              type="button"
+              onClick={openPrivacySettings}
+              className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer inline-flex items-center gap-1 text-slate-500"
+            >
+              <Settings className="w-3 h-3" />
+              <span>Privacy Settings</span>
+            </button>
           </nav>
         </div>
 

@@ -17,6 +17,14 @@ import { ProcessingError } from '@/core/types';
 import { formatBytes } from '@/lib/utils';
 import { useStagedImage } from '@/context/StagedImageContext';
 import {
+  trackToolModeSelected,
+  trackToolStarted,
+  trackProcessingCompleted,
+  trackProcessingError,
+  PermittedPreset,
+  PermittedErrorCode,
+} from '@/lib/analytics';
+import {
   SlidersHorizontal,
   Target,
   Sparkles,
@@ -54,7 +62,7 @@ export default function CompressorPage() {
     clearError,
     clear,
     downloadResult,
-  } = useImageProcessor();
+  } = useImageProcessor('compressor');
 
   const { stagedFile, consumeStagedFile } = useStagedImage();
   const ingestedFileRef = useRef<File | null>(null);
@@ -99,6 +107,29 @@ export default function CompressorPage() {
     setFeedbackError(null);
     clearError();
 
+    const selectedPreset: PermittedPreset | undefined =
+      mode === 'targetKb'
+        ? targetKb === 20
+          ? 'preset_20kb'
+          : targetKb === 50
+          ? 'preset_50kb'
+          : targetKb === 100
+          ? 'preset_100kb'
+          : targetKb === 200
+          ? 'preset_200kb'
+          : targetKb === 500
+          ? 'preset_500kb'
+          : targetKb === 1024
+          ? 'preset_1mb'
+          : 'custom'
+        : undefined;
+
+    trackToolStarted({
+      toolName: 'compressor',
+      mode: mode === 'targetKb' ? 'target_kb' : 'quality',
+      preset: selectedPreset,
+    });
+
     try {
       if (mode === 'targetKb') {
         const targetBytes = targetKb * 1024;
@@ -112,6 +143,10 @@ export default function CompressorPage() {
         });
 
         setResult(res);
+        trackProcessingCompleted({
+          toolName: 'compressor',
+          mode: 'target_kb',
+        });
       } else {
         // Quality Mode
         const quality = qualityPercent / 100;
@@ -124,13 +159,25 @@ export default function CompressorPage() {
         });
 
         setResult(res);
+        trackProcessingCompleted({
+          toolName: 'compressor',
+          mode: 'quality',
+        });
       }
     } catch (err: unknown) {
+      let sanitizedCode: PermittedErrorCode = 'unknown_error';
       if (err instanceof ProcessingError) {
         if (err.code === 'TARGET_UNREACHABLE_AT_MIN_QUALITY') {
+          sanitizedCode = 'target_unreachable';
           setFeedbackError(
             `${err.message} Tip: Enable "Auto-downscale dimensions" below, or increase the target KB limit.`
           );
+        } else if (err.code === 'CANVAS_ENCODING_FAILED') {
+          sanitizedCode = 'canvas_encoding_failed';
+          setFeedbackError(err.message);
+        } else if (err.code === 'CANVAS_ENCODING_TIMEOUT') {
+          sanitizedCode = 'canvas_encoding_timeout';
+          setFeedbackError(err.message);
         } else {
           setFeedbackError(err.message);
         }
@@ -139,6 +186,7 @@ export default function CompressorPage() {
       } else {
         setFeedbackError('An error occurred during compression.');
       }
+      trackProcessingError('compressor', sanitizedCode);
     } finally {
       setIsProcessing(false);
     }
@@ -292,7 +340,14 @@ export default function CompressorPage() {
                 <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900">
                   <button
                     type="button"
-                    onClick={() => setMode('targetKb')}
+                    onClick={() => {
+                      setMode('targetKb');
+                      trackToolModeSelected({
+                        toolName: 'compressor',
+                        actionType: 'mode_switch',
+                        mode: 'target_kb',
+                      });
+                    }}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
                       mode === 'targetKb'
                         ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -304,7 +359,14 @@ export default function CompressorPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMode('quality')}
+                    onClick={() => {
+                      setMode('quality');
+                      trackToolModeSelected({
+                        toolName: 'compressor',
+                        actionType: 'mode_switch',
+                        mode: 'quality',
+                      });
+                    }}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
                       mode === 'quality'
                         ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -333,7 +395,29 @@ export default function CompressorPage() {
                           <button
                             key={preset.label}
                             type="button"
-                            onClick={() => setTargetKb(preset.kb)}
+                            onClick={() => {
+                              setTargetKb(preset.kb);
+                              const pCode: PermittedPreset =
+                                preset.kb === 20
+                                  ? 'preset_20kb'
+                                  : preset.kb === 50
+                                  ? 'preset_50kb'
+                                  : preset.kb === 100
+                                  ? 'preset_100kb'
+                                  : preset.kb === 200
+                                  ? 'preset_200kb'
+                                  : preset.kb === 500
+                                  ? 'preset_500kb'
+                                  : preset.kb === 1024
+                                  ? 'preset_1mb'
+                                  : 'custom';
+                              trackToolModeSelected({
+                                toolName: 'compressor',
+                                actionType: 'preset_select',
+                                mode: 'target_kb',
+                                preset: pCode,
+                              });
+                            }}
                             className={`rounded-lg border px-3.5 py-1.5 text-xs font-medium transition-all ${
                               isSelected
                                 ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 ring-2 ring-blue-500/20'
