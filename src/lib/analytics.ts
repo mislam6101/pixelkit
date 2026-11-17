@@ -68,6 +68,9 @@ const STATIC_ROUTE_TITLES: Record<string, string> = {
   '/compressor/': 'Image Compressor — PhotoKit',
   '/resizer/': 'Image Resizer — PhotoKit',
   '/converter/': 'Image Converter — PhotoKit',
+  '/about/': 'About Us | PhotoKit',
+  '/contact/': 'Contact Us | PhotoKit',
+  '/terms/': 'Terms of Use | PhotoKit',
   '/privacy-policy/': 'Privacy Policy — PhotoKit',
 };
 
