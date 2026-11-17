@@ -21,7 +21,7 @@ export function Footer() {
 
           {/* Navigation Links */}
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-600 dark:text-slate-400">
-            <Link
+            {/* <Link
               href="/compressor/"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
@@ -38,7 +38,7 @@ export function Footer() {
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Converter
-            </Link>
+            </Link> */}
             <Link
               href="/about/"
               className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
