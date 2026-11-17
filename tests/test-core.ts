@@ -528,6 +528,176 @@ async function runTests() {
   }
 
   // ---------------------------------------------------------------------------
+  // Test Suite 8: Image Download Filename Generation
+  // ---------------------------------------------------------------------------
+  console.log('\n--- Test Suite 8: Image Download Filename Generation ---');
+  const { generateDownloadFilename } = await import('../src/lib/filename');
+
+  // 8.1 Standard compressor, resizer and converter filenames
+  {
+    const compName = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(compName === 'photo-compressed.jpg', 'Generates standard compressor filename (photo-compressed.jpg)');
+
+    const resName = generateDownloadFilename({
+      originalName: 'banner.png',
+      toolName: 'resizer',
+      outputMimeType: 'image/png',
+    });
+    assert(resName === 'banner-resized.png', 'Generates standard resizer filename (banner-resized.png)');
+
+    const convName = generateDownloadFilename({
+      originalName: 'logo.png',
+      toolName: 'converter',
+      outputMimeType: 'image/webp',
+    });
+    assert(convName === 'logo-converted.webp', 'Generates standard converter filename (logo-converted.webp)');
+  }
+
+  // 8.2 .jpeg extension preservation
+  {
+    const jpegName = generateDownloadFilename({
+      originalName: 'vacation.photo.jpeg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(jpegName === 'vacation.photo-compressed.jpeg', 'Preserves .jpeg spelling when input was .jpeg and output is JPEG');
+  }
+
+  // 8.3 Multi-dot filenames
+  {
+    const multiDot = generateDownloadFilename({
+      originalName: 'archive.backup.v2.png',
+      toolName: 'resizer',
+      outputMimeType: 'image/png',
+    });
+    assert(multiDot === 'archive.backup.v2-resized.png', 'Preserves internal dots in multi-dot filenames');
+  }
+
+  // 8.4 Unknown and empty filenames fallback to image
+  {
+    const nullName = generateDownloadFilename({
+      originalName: null,
+      toolName: 'converter',
+      outputMimeType: 'image/webp',
+    });
+    assert(nullName === 'image-converted.webp', 'Falls back to image for null originalName');
+
+    const emptyName = generateDownloadFilename({
+      originalName: '   ',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(emptyName === 'image-compressed.jpg', 'Falls back to image for whitespace originalName');
+  }
+
+  // 8.5 Generic blob filenames normalized to image
+  {
+    const blobName = generateDownloadFilename({
+      originalName: 'blob',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(blobName === 'image-compressed.jpg', 'Normalizes generic "blob" filename to image-compressed.jpg');
+  }
+
+  // 8.6 MouseEvent / object custom filename input safely absorbed without [object Object]
+  {
+    const fakeMouseEvent = { type: 'click', target: {}, preventDefault: () => {} };
+    const eventName = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+      customFilename: fakeMouseEvent,
+    });
+    assert(eventName === 'photo-compressed.jpg', 'Absorbs MouseEvent object without producing [object Object]');
+
+    const objName = generateDownloadFilename({
+      originalName: 'banner.png',
+      toolName: 'resizer',
+      outputMimeType: 'image/png',
+      customFilename: '[object Object]',
+    });
+    assert(objName === 'banner-resized.png', 'Ignores literal "[object Object]" string as customFilename');
+  }
+
+  // 8.7 Spaces and parentheses preserved
+  {
+    const spaceParen = generateDownloadFilename({
+      originalName: 'Family Photo (2026).png',
+      toolName: 'resizer',
+      outputMimeType: 'image/png',
+    });
+    assert(spaceParen === 'Family Photo (2026)-resized.png', 'Preserves spaces and parentheses in filename');
+  }
+
+  // 8.8 Unicode characters preserved
+  {
+    const unicodeName = generateDownloadFilename({
+      originalName: '家族写真 2026.png',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(unicodeName === '家族写真 2026-compressed.jpg', 'Preserves Unicode characters in filename');
+  }
+
+  // 8.9 Invalid filesystem characters stripped
+  {
+    const sanitized = generateDownloadFilename({
+      originalName: 'photo:illegal*name?.jpg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(sanitized === 'photoillegalname-compressed.jpg', 'Strips filesystem-invalid characters (: * ?)');
+  }
+
+  // 8.10 Valid custom filename override respected
+  {
+    const custom = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+      customFilename: 'my-custom-export',
+    });
+    assert(custom === 'my-custom-export.jpg', 'Applies valid custom filename with appropriate extension');
+
+    const customWithExt = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'compressor',
+      outputMimeType: 'image/jpeg',
+      customFilename: 'my-custom-export.jpg',
+    });
+    assert(customWithExt === 'my-custom-export.jpg', 'Avoids duplicate extension when custom filename already has it');
+  }
+
+  // 8.11 Correct output extension based on MIME type
+  {
+    const toWebp = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'converter',
+      outputMimeType: 'image/webp',
+    });
+    assert(toWebp === 'photo-converted.webp', 'Selects .webp extension for image/webp');
+
+    const toPng = generateDownloadFilename({
+      originalName: 'photo.jpg',
+      toolName: 'converter',
+      outputMimeType: 'image/png',
+    });
+    assert(toPng === 'photo-converted.png', 'Selects .png extension for image/png');
+
+    const toJpg = generateDownloadFilename({
+      originalName: 'photo.png',
+      toolName: 'converter',
+      outputMimeType: 'image/jpeg',
+    });
+    assert(toJpg === 'photo-converted.jpg', 'Selects .jpg extension for image/jpeg when source was not .jpeg');
+  }
+
+  // ---------------------------------------------------------------------------
   // Summary
   // ---------------------------------------------------------------------------
   console.log('\n=================================================');

@@ -225,7 +225,7 @@ export function ImageComparison({
 
           <Button
             variant="primary"
-            onClick={onDownload}
+            onClick={() => onDownload()}
             className="w-full sm:w-auto shadow-sm"
           >
             <Download className="w-4 h-4" />

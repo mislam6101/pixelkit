@@ -15,6 +15,7 @@ import {
   trackProcessingError,
   PermittedErrorCode,
 } from '@/lib/analytics';
+import { generateDownloadFilename } from '@/lib/filename';
 
 export interface UseImageProcessorReturn {
   file: File | null;
@@ -31,7 +32,7 @@ export interface UseImageProcessorReturn {
   setError: (error: { code: string; message: string; details?: Record<string, unknown> } | null) => void;
   clearError: () => void;
   clear: () => void;
-  downloadResult: (customFilename?: string) => void;
+  downloadResult: (customFilename?: unknown) => void;
 }
 
 export function useImageProcessor(toolName: ToolName = 'compressor'): UseImageProcessorReturn {
@@ -161,15 +162,15 @@ export function useImageProcessor(toolName: ToolName = 'compressor'): UseImagePr
   }, []);
 
   const downloadResult = useCallback(
-    (customFilename?: string) => {
+    (customFilename?: unknown) => {
       if (!result || !file) return;
 
-      let filename = customFilename;
-      if (!filename) {
-        const originalBase = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-        const ext = result.mimeType === 'image/jpeg' ? 'jpg' : result.mimeType === 'image/webp' ? 'webp' : 'png';
-        filename = `${originalBase}-photokit.${ext}`;
-      }
+      const filename = generateDownloadFilename({
+        originalName: file.name,
+        toolName,
+        outputMimeType: result.mimeType,
+        customFilename,
+      });
 
       const link = document.createElement('a');
       link.href = result.objectUrl;
