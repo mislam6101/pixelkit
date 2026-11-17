@@ -278,7 +278,7 @@ export default function CompressorPage() {
 
         <div className="flex items-center gap-2">
           <Badge variant="outline" size="sm">
-            Strict $\le$ Target Invariant
+            Strict ≤ Target Invariant
           </Badge>
         </div>
       </div>
@@ -583,7 +583,7 @@ export default function CompressorPage() {
                       <SlidersHorizontal className="w-4 h-4" />
                       <span>
                         {mode === 'targetKb'
-                          ? `Compress to $\\le$ ${targetKb} KB`
+                          ? `Compress to ${targetKb} KB or less`
                           : `Compress at ${qualityPercent}% Quality`}
                       </span>
                     </>
@@ -689,7 +689,7 @@ export default function CompressorPage() {
                 <li className="flex items-start gap-2.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400 mt-2 shrink-0" />
                   <span>
-                    <strong className="text-slate-900 dark:text-slate-100">Optional Downscaling Safeguard:</strong> By default, PhotoKit preserves original width and height without downscaling. However, high-resolution camera photos with complex visual entropy may physically exceed a tiny byte limit (such as 20KB) at full resolution. Checking &ldquo;Auto-downscale dimensions&rdquo; permits the engine to scale dimensions down in 10% increments until the byte budget is met.
+                    <strong className="text-slate-900 dark:text-slate-100">Optional Downscaling Safeguard:</strong> By default, PhotoKit preserves original width and height without downscaling. However, high-resolution camera photos with complex visual entropy may physically exceed a tiny byte limit (such as 20KB) at full resolution. Checking &ldquo;Auto-downscale dimensions&rdquo; permits the engine to reduce dimensions by 15% per pass (multiplying width and height by 0.85, up to 5 passes down to a 100px floor) until the byte budget is met.
                   </span>
                 </li>
               </ul>

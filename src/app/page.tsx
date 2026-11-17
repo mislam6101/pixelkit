@@ -153,7 +153,7 @@ export default function HomePage() {
       title: 'Compress Image to Exact File Sizes',
       tagline: 'Meet strict upload size limits (e.g., job portals, passport forms, web performance) without visible pixel distortion.',
       bullets: [
-        'Guaranteed mathematical ceiling: Output size $\\le$ Target KB using a bounded 7-step bisection algorithm.',
+        'Guaranteed mathematical ceiling: Output size ≤ Target KB using a bounded 7-step bisection algorithm.',
         'Quick presets: 20 KB, 50 KB, 100 KB, 200 KB, 500 KB, and 1 MB.',
         'PNG smart optimization notice: Automatically recommends WebP conversion when lossy compression of transparent PNGs is required.',
       ],
@@ -198,7 +198,7 @@ export default function HomePage() {
       icon: <SlidersHorizontal className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
       badge: 'Target-KB Engine',
       accent: 'border-blue-200 dark:border-blue-900/60 hover:border-blue-400',
-      specs: 'JPG • PNG • WebP | Up to 8192px | Exact $\\le$ KB Ceiling',
+      specs: 'JPG • PNG • WebP | Up to 8192px | Exact ≤ KB Ceiling',
     },
     {
       title: 'Online Image Resizer',
@@ -216,7 +216,7 @@ export default function HomePage() {
       icon: <RefreshCw className="w-5 h-5 text-purple-600 dark:text-purple-400" />,
       badge: 'Alpha Flattening',
       accent: 'border-purple-200 dark:border-purple-900/60 hover:border-purple-400',
-      specs: 'PNG $\\leftrightarrow$ JPG $\\leftrightarrow$ WebP | Matte Fills | Quality Sliders',
+      specs: 'PNG ↔ JPG ↔ WebP | Matte Fills | Quality Sliders',
     },
   ];
 
