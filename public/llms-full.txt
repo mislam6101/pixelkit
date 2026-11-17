@@ -1,0 +1,288 @@
+# PhotoKit — Full Technical Reference & Documentation
+
+> Complete technical manual, algorithmic specifications, hardware guardrails, and verified FAQ repository for PhotoKit (https://photokit-app.pages.dev/).
+
+---
+
+## 1. PhotoKit Overview & Architecture
+
+PhotoKit is a browser-native image optimization and manipulation studio providing three primary tools:
+1. **Image Compressor (`/compressor/`):** Lossy compression targeting exact kilobyte limits or user-defined visual quality percentages.
+2. **Image Resizer (`/resizer/`):** Proportional dimension scaling with aspect-ratio locks or freeform adjustment, backed by bounding-box resolution presets.
+3. **Image Converter (`/converter/`):** Bidirectional format transcoding between JPEG, PNG, and WebP, featuring configurable background matte fills for JPEG transparency flattening.
+
+PhotoKit is deployed as a static web application on Cloudflare Pages, built with Next.js (App Router, static HTML export), React, and TypeScript. All computational workloads—decoding, canvas transformation, binary search iterations, and re-encoding—execute entirely within the client's web browser environment on device hardware.
+
+---
+
+## 2. Client-Side Processing & File Lifecycle
+
+PhotoKit operates without backend processing infrastructure. The image file lifecycle proceeds through the following in-memory stages:
+
+1. **File Ingestion:** The user selects or drops an image into the upload dropzone. An in-memory object reference is created via `URL.createObjectURL(file)`.
+2. **Binary Header Validation:** The application slices the first 12 bytes of the file and inspects binary magic bytes to confirm the true file format before passing it to browser decoders.
+3. **DOM Image Decoding:** The validated file is loaded into an in-memory `HTMLImageElement` to read natural pixel dimensions (`naturalWidth`, `naturalHeight`).
+4. **Dimension Verification:** Pixel dimensions and total area are evaluated against hard memory boundaries.
+5. **Canvas Allocation:** An off-screen `HTMLCanvasElement` is created with a 2D rendering context (`imageSmoothingQuality: 'high'`).
+6. **Execution:** The canvas applies the requested transformation (scaling, drawing, or background color filling).
+7. **Safe Encoding:** The canvas encodes the bitmap into a binary `Blob` using native `canvas.toBlob()`, wrapped in timeout and retry guardrails.
+8. **Download & Disposal:** The output blob receives an object URL for download via an `<a>` element. All object URLs and canvas backing dimensions are cleared upon component reset or unmount to facilitate garbage collection.
+
+**Network Boundary Disclosure:** Image files, pixel bitmaps, and metadata are never uploaded to PhotoKit servers. Standard browser network activity remains subject to normal web transport (such as loading application assets from Cloudflare's CDN and optional, consent-gated operational telemetry).
+
+---
+
+## 3. Supported & Unsupported Image Formats
+
+### Supported Formats
+PhotoKit strictly supports three web image formats:
+- **JPEG (`image/jpeg`, `.jpg`, `.jpeg`):** Photographic standard using lossy DCT compression. Does not support alpha transparency.
+- **PNG (`image/png`, `.png`):** Lossless format using deflation encoding. Supports 8-bit alpha channel transparency.
+- **WebP (`image/webp`, `.webp`):** Modern container supporting both lossy and lossless encoding, alongside full alpha transparency.
+
+### Unsupported Formats
+The following formats are rejected at input validation:
+- **GIF (`image/gif`):** Not included in the supported input whitelist.
+- **SVG (`image/svg+xml`):** Vector formats are rejected.
+- **AVIF, HEIC, TIFF, BMP, RAW:** Not supported for input or output.
+
+### Animated Image Behavior
+- Multi-frame animated GIFs are rejected at initial format validation.
+- Animated WebP files may pass initial magic-byte validation, but browser 2D canvas drawing captures only the first frame. The resulting output is a single static image. Multi-frame animations are not preserved.
+
+---
+
+## 4. Input Validation & Magic-Byte Checks
+
+To protect against extension-spoofing attacks (such as renaming an executable or corrupted file to `.jpg`), PhotoKit reads the first 12 bytes of uploaded files and matches them against verified binary signatures:
+
+| Format | Magic Byte Signature | Detection Rule |
+| :--- | :--- | :--- |
+| **JPEG** | `FF D8 FF` | First 3 bytes match `0xFF, 0xD8, 0xFF`. |
+| **PNG** | `89 50 4E 47 0D 0A 1A 0A` | First 8 bytes match standard PNG signature. |
+| **WebP** | `52 49 46 46 ... 57 45 42 50` | Bytes 0–3 match `'RIFF'` and bytes 8–11 match `'WEBP'`. |
+
+Files smaller than 4 bytes, corrupted files, or files lacking recognized headers throw an `INVALID_FILE_TYPE` or `CORRUPTED_FILE` processing error.
+
+---
+
+## 5. Hardware & Memory Guardrails
+
+Processing high-resolution uncompressed bitmaps in browser memory can exhaust RAM and cause tab terminations. PhotoKit enforces the following hardware guardrails:
+
+| Guardrail | Threshold | Behavior When Exceeded |
+| :--- | :--- | :--- |
+| **Maximum Single Dimension** | `8192 px` (`MAX_SAFE_DIMENSION`) | File rejected with `DIMENSION_EXCEEDED`. |
+| **Maximum Total Pixel Area** | `16,777,216 px` (`MAX_SAFE_PIXEL_AREA`) | File rejected with `PIXEL_AREA_EXCEEDED`. |
+| **Mobile Memory Advisory** | `4096 px` (`MOBILE_WARNING_DIMENSION`) | Non-blocking UI warning displayed to mobile users. |
+| **Canvas Encoding Timeout** | `6000 ms` (`CANVAS_ENCODING_TIMEOUT_MS`) | Encoding rejects with `CANVAS_ENCODING_TIMEOUT`. |
+| **Encoding Failure Retry** | 1 controlled retry | Waited 50ms before retry. Timeouts are never retried. |
+
+*Note on Independent Limits:* The single-dimension limit (8192px) and total area limit (16.7 megapixels, equivalent to 4096×4096px) are separate constraints. An image measuring 8192 × 8192 pixels has an area of 67.1 megapixels and is rejected by the area limit even though each dimension is within 8192px.
+
+---
+
+## 6. Image Compressor Engine (`/compressor/`)
+
+### Target-KB Mode
+Target-KB mode compresses an image to strictly satisfy a user-specified byte ceiling ($\text{Output Bytes} \le \text{Target Bytes}$).
+- **Algorithm:** Bounded 7-step binary bisection search over quality factors between 1% (`0.01`) and 100% (`1.00`).
+  1. Checks baseline ceiling ($Q = 1.00$). If it meets the target, compression completes immediately.
+  2. Evaluates floor ($Q = 0.01$). If even 1% quality exceeds the target, compression stops or triggers auto-downscaling.
+  3. Systematically evaluates quality midpoints over 7 discrete iterations, storing the highest quality candidate that satisfies the byte constraint.
+- **Target Presets:** 20 KB (20,480 B), 50 KB (51,200 B), 100 KB (102,400 B), 200 KB (204,800 B), 500 KB (512,000 B), 1 MB (1,048,576 B), and custom KB inputs.
+- **Format Constraint (PNG):** Browser Canvas encoders process PNG strictly as a lossless format and ignore quality parameters. Target-KB compression on PNG is rejected with `PNG_QUALITY_NOT_SUPPORTED`. Users are prompted to transcode to WebP (retains transparency) or JPEG (white background).
+- **Optional Auto-Downscaling:** Unchecked by default. Original dimensions are preserved unless the user enables 'Auto-downscale dimensions'. If the image cannot reach the target size at 1% quality, dimensions are reduced by 15% per pass (multiplying width and height by 0.85), for a maximum of 5 passes, subject to a 100px minimum dimension floor. When the target becomes achievable at minimum quality, the standard 7-step binary search runs on the reduced dimensions to find the highest quality that meets the target.
+
+### Quality Mode
+Applies a static quality slider from 1% to 100% (mapped to $0.01$–$1.00$) for JPEG and WebP.
+
+---
+
+## 7. Image Resizer Engine (`/resizer/`)
+
+### Proportional Scaling & Aspect Ratio Lock
+- **Default State:** Aspect Ratio Lock is enabled by default.
+- **Formulas:**
+  $$\text{aspectRatio} = \frac{\text{sourceWidth}}{\text{sourceHeight}}$$
+  $$\text{Target Height} = \text{round}\left(\frac{\text{targetWidth}}{\text{aspectRatio}}\right)$$
+  $$\text{Target Width} = \text{round}\left(\text{targetHeight} \times \text{aspectRatio}\right)$$
+- **Unlocked Mode:** Toggling the lock icon off permits independent width and height entries. If aspect ratios mismatch, the image is stretched across the canvas.
+
+### Bounding-Box Fitting Algorithm
+When Aspect Ratio Lock is active and a resolution preset is selected, PhotoKit treats the preset as a bounding box and scales according to the more restrictive dimension:
+$$\text{scale} = \min\left(\frac{\text{presetWidth}}{\text{sourceWidth}}, \frac{\text{presetHeight}}{\text{sourceHeight}}\right)$$
+$$\text{Output Width} = \text{round}(\text{sourceWidth} \times \text{scale})$$
+$$\text{Output Height} = \text{round}(\text{sourceHeight} \times \text{scale})$$
+*Example:* A portrait photo of 1200 × 1600 px resized with Full HD (1920×1080) outputs at **810 × 1080 px**, fitting completely inside the boundary with zero cropping and zero distortion.
+
+### Standard Presets
+- Full HD (1080p): `1920 × 1080 px` (16:9 widescreen)
+- HD (720p): `1280 × 720 px` (16:9 high definition)
+- Web / Social Share: `1200 × 630 px` (1.91:1 OpenGraph)
+- Square Post: `1080 × 1080 px` (1:1 square)
+- Profile Avatar: `400 × 400 px` (1:1 compact)
+- Relative Scales: `50%` and `75%` proportional reduction
+
+---
+
+## 8. Image Converter Engine (`/converter/`)
+
+### Conversion Combinations
+- **PNG &rarr; WebP:** Retains full alpha transparency; yields smaller file sizes.
+- **WebP &rarr; PNG:** Lossless container for editor and workflow compatibility. Does not restore previously lost lossy details.
+- **PNG &rarr; JPEG:** Solid background matte fill replaces transparent areas.
+- **JPEG &rarr; WebP:** Modernizes web delivery for faster loading.
+- **JPEG &rarr; PNG:** Wraps JPEG pixels in a lossless PNG container. File size typically increases without improving quality.
+
+### JPEG Transparency Flattening
+The JPEG specification does not support alpha channels. Transparent pixels drawn to a canvas and exported to JPEG appear black without background filling.
+PhotoKit pre-fills the canvas with a background color before drawing the source image (`drawImageToCanvas`):
+- **Default Matte Color:** Clean White (`#FFFFFF`).
+- **Preset Swatches:** White (`#FFFFFF`), Black (`#000000`), Light Gray (`#F3F4F6`), Slate Gray (`#334155`).
+- **Custom Hex Picker:** Native `<input type="color">` for exact branding colors.
+- **PNG/WebP Behavior:** Canvas surface is cleared (`ctx.clearRect`), preserving full alpha channels.
+
+---
+
+## 9. Error Handling & Standardized Error Codes
+
+The core engine uses typed `ProcessingError` objects with standardized codes:
+
+| Error Code | Trigger Condition |
+| :--- | :--- |
+| `INVALID_FILE_TYPE` | Uploaded file fails binary magic-byte detection or is an unsupported format. |
+| `CORRUPTED_FILE` | Image element fails decoding or file byte length is insufficient. |
+| `DIMENSION_EXCEEDED` | Single dimension exceeds 8192px ceiling. |
+| `PIXEL_AREA_EXCEEDED` | Total surface area exceeds 16,777,216 pixels. |
+| `CANVAS_CONTEXT_UNAVAILABLE` | Browser fails to acquire 2D rendering context. |
+| `CANVAS_ENCODING_FAILED` | `canvas.toBlob()` returns null or throws persistently after retry. |
+| `CANVAS_ENCODING_TIMEOUT` | Encoding operation exceeds 6000ms ceiling. |
+| `TARGET_UNREACHABLE_AT_MIN_QUALITY` | Image exceeds target byte limit even at 1% quality (auto-downscaling disabled). |
+| `PNG_QUALITY_NOT_SUPPORTED` | Attempted target-KB compression on lossless PNG. |
+| `UNSUPPORTED_OPERATION` | Invalid parameter configuration passed to core function. |
+
+---
+
+## 10. Privacy, Consent & Analytics Boundaries
+
+- **Local Storage Key:** Consent choices are stored in browser localStorage under `photokit-consent` (`granted` or `denied`).
+- **Default State:** Analytics is disabled by default. No tracking cookies are set and no external scripts are fetched until the user explicitly accepts.
+- **Google Analytics 4 Telemetry (`G-DH98V1E896`):**
+  When granted, telemetry is restricted to five sanitized operational parameters:
+  1. `tool_name`: `compressor`, `resizer`, `converter`, `homepage`
+  2. `action_type`: `process_start`, `file_download`, `mode_switch`, `preset_select`
+  3. `mode`: `target_kb`, `quality`, `dimensions`, `transcode`
+  4. `preset`: `preset_20kb`, `preset_fhd`, etc.
+  5. `error_code`: `dimensions_exceed_limit`, `canvas_encoding_timeout`, etc.
+- **Excluded Telemetry:** PhotoKit explicitly excludes image content, filenames, file paths, pixel dimensions, byte sizes, and EXIF metadata from telemetry.
+- **Technical Limitation Disclosure:** Withdrawing consent halts future dispatches and clears accessible client cookies, but cannot delete HTTP requests already transmitted prior to withdrawal. Standard internet network requests inherently transmit user IP addresses to network infrastructure. PhotoKit does not guarantee absolute anonymity.
+
+---
+
+## 11. Complete FAQ Reference (25 Verified Entries)
+
+### A. General & Homepage FAQs (7 Items)
+
+#### Q1: Is PhotoKit completely free to use?
+Yes. PhotoKit is 100% free with no subscriptions, accounts, or usage quotas. Because all image processing executes locally in your browser using HTML5 Canvas, zero server compute overhead is incurred.
+
+#### Q2: Are my images uploaded to any remote server or cloud?
+No. PhotoKit is designed from the ground up as a client-side utility. Your images never travel over the network; compression, resizing, and transcoding occur entirely within isolated browser memory on your device.
+
+#### Q3: How do I compress an image to an exact 50KB or 20KB file size?
+Upload your image to the Image Compressor, select "Target File Size" mode, click the 50 KB or 20 KB preset, and click Compress. PhotoKit runs a 7-step binary bisection algorithm to identify the highest possible visual quality factor whose output bytes strictly do not exceed your target threshold.
+
+#### Q4: Which image formats does PhotoKit support?
+PhotoKit supports JPEG (.jpg, .jpeg), PNG (.png), and WebP (.webp). You can compress, resize, or transcode between any combination of these three formats.
+
+#### Q5: What is the difference between JPG, PNG, and WebP?
+JPG is standard for photographs and gradients without transparency. PNG is lossless and supports transparent alpha channels, but produces larger file sizes. WebP is a modern web standard that combines transparent channels with superior lossy compression, generating files 30% to 80% smaller than JPG or PNG.
+
+#### Q6: Can I resize an image without changing its aspect ratio?
+Yes. In the Image Resizer, the Aspect Ratio Lock is turned on by default. Entering a new width automatically adjusts the height proportionally to prevent any stretching or distortion.
+
+#### Q7: Does PhotoKit work on mobile phones and tablets?
+Yes. PhotoKit is fully responsive and functions seamlessly on mobile Safari and Chrome. In addition, built-in memory safeguards prevent mobile browser crashes when handling large camera photos.
+
+---
+
+### B. Image Compressor FAQs (6 Items)
+
+#### Q8: Why is PNG unavailable for target-KB compression?
+Standard web browser Canvas encoders process PNG strictly as a lossless format, ignoring quality compression parameters. To compress an image to an exact target file size (such as 20KB or 50KB), PhotoKit offers to transcode the image to WebP (which preserves alpha transparency while significantly reducing file size) or JPEG (which flattens transparency against a white background).
+
+#### Q9: What happens when an image cannot reach the target file size?
+If an image has high pixel dimensions or high visual entropy, even encoding at the minimum quality floor (1%) may exceed your requested byte ceiling. In this case, PhotoKit alerts you with an advisory notice. You can either increase the target KB limit or enable the optional "Auto-downscale dimensions" setting to proportionally reduce pixel dimensions until the file size constraint is met.
+
+#### Q10: How does the seven-step quality search work?
+PhotoKit runs a bounded binary bisection search over image quality factors between 1% and 100%. After checking baseline boundaries, it systematically evaluates quality midpoints over seven discrete iterations to identify the highest quality factor that produces a file size strictly less than or equal to your target byte ceiling.
+
+#### Q11: Does target-KB compression change image dimensions?
+No. By default, PhotoKit strictly preserves your image's original width and height, adjusting only encoding quality factors. Pixel dimensions are only reduced if you explicitly enable the "Auto-downscale dimensions" checkbox.
+
+#### Q12: Can I compress images for online upload size limits?
+Yes. PhotoKit includes dedicated presets (such as 20 KB, 50 KB, 100 KB, and 200 KB) and custom KB inputs designed to help you meet strict file size thresholds commonly required by job applications, portal forms, and website optimization benchmarks.
+
+#### Q13: What is the difference between target-size and custom-quality modes?
+Target File Size mode calculates an encoder quality factor dynamically using binary bisection to ensure the output byte count does not exceed a specified ceiling. Custom Quality mode applies a fixed quality percentage (from 1% to 100%) chosen by you, regardless of what the final file size in kilobytes turns out to be.
+
+---
+
+### C. Image Resizer FAQs (6 Items)
+
+#### Q14: How does the Aspect Ratio Lock prevent image distortion?
+When the Aspect Ratio Lock is enabled (the default setting), modifying either the width or height automatically calculates the other dimension using the photo's original aspect ratio. This ensures your image scales proportionally without unnatural horizontal or vertical stretching, squishing, or distortion.
+
+#### Q15: What happens when I select an FHD preset for a vertical photo?
+PhotoKit applies a bounding-box fitting algorithm (Math.min of the width and height ratios). For example, applying the Full HD preset (1920×1080) to a 1200×1600 portrait photo scales it to 810×1080 px. The entire image fits within the 1920×1080 boundary with zero cropping and zero distortion.
+
+#### Q16: Can I stretch an image to custom dimensions without locking proportions?
+Yes. By clicking the lock icon to toggle Aspect Ratio Lock off, you can enter any custom width and height independently, or select presets to force exact pixel targets. Note that if the new dimensions do not match your original proportions, the image will be visually stretched or compressed to fill the canvas.
+
+#### Q17: Why does PhotoKit enforce an 8192px dimension ceiling and pixel-area limit?
+To ensure stability and protect your device from memory exhaustion or browser tab crashes, PhotoKit caps individual dimensions at 8192 px and total canvas surface area at 16,777,216 pixels (~16.7 megapixels). Additionally, a mobile advisory appears for dimensions exceeding 4096 px to prevent performance degradation on handheld hardware.
+
+#### Q18: Does upscaling a small photo to a higher resolution increase its quality?
+No. Increasing pixel dimensions above the source resolution prompts the browser's HTML5 Canvas engine to interpolate existing pixel data using bicubic smoothing. While this softens pixelation and avoids jagged stair-stepping artifacts, it cannot restore or invent optical detail that was absent in the original capture.
+
+#### Q19: Can I convert the image format while resizing?
+Yes. You can preserve the original format or transcode the resized canvas to JPEG, PNG, or WebP. When converting to JPEG, transparent areas are automatically matted with a clean white background (#FFFFFF). PNG delivers lossless output while ignoring quality sliders, and WebP offers high-efficiency lossy compression with full alpha transparency support.
+
+---
+
+### D. Image Converter FAQs (6 Items)
+
+#### Q20: Why does converting a transparent PNG to JPEG require a background color?
+JPEG does not support an alpha transparency channel. Transparent areas must therefore be represented using a solid color in the JPEG output. PhotoKit fills the Canvas with the selected matte color before drawing the source image. White (#FFFFFF) is the default background color.
+
+#### Q21: Does converting a JPEG to PNG improve image quality?
+No. PNG uses lossless encoding, but it cannot restore image information or compression artifacts lost during earlier JPEG encoding. Converting JPEG to PNG does not recover the original image quality.
+
+#### Q22: Why does the quality slider disappear when selecting PNG?
+The converter uses browser Canvas encoding. PNG output is encoded without a lossy quality parameter, so the quality slider is not applicable. The slider is available for JPEG and WebP output.
+
+#### Q23: Which image format should I use for a website?
+The best format depends on the image and use case. WebP supports both lossy and lossless encoding and transparency, while JPEG is widely compatible for photographs and PNG is useful for lossless graphics and transparency. Compare visual quality, file size, and compatibility before choosing.
+
+#### Q24: Can I convert animated GIF or animated WebP files?
+GIF is not supported as an input format by PhotoKit. Animated WebP may pass input validation, but Canvas processing captures the first frame and produces a static output. Multi-frame animation is not preserved.
+
+#### Q25: Why does PhotoKit enforce an 8192px dimension limit?
+Large images can require substantial browser memory during Canvas processing. PhotoKit enforces a maximum single dimension of 8192px and a separate maximum pixel area of 16,777,216 pixels. Both limits must be satisfied before processing.
+
+---
+
+## 12. Canonical Page Directory
+
+| Page | URL | Description |
+| :--- | :--- | :--- |
+| **Home** | https://photokit-app.pages.dev/ | Studio landing page, feature highlights, and interactive upload zone. |
+| **Image Compressor** | https://photokit-app.pages.dev/compressor/ | Target-KB compression and quality optimization. |
+| **Image Resizer** | https://photokit-app.pages.dev/resizer/ | Proportional dimension scaling and resolution presets. |
+| **Image Converter** | https://photokit-app.pages.dev/converter/ | Bidirectional format transcoding and alpha-channel matte fills. |
+| **Privacy Policy** | https://photokit-app.pages.dev/privacy-policy/ | Full data privacy, security boundaries, and telemetry specifications. |
+| **LLM Index** | https://photokit-app.pages.dev/llms.txt | Concise LLM discovery index. |
+| **LLM Full Reference** | https://photokit-app.pages.dev/llms-full.txt | Complete technical manual and FAQ repository. |
+| **XML Sitemap** | https://photokit-app.pages.dev/sitemap.xml | XML sitemap containing all canonical routes. |
+| **Robots Rules** | https://photokit-app.pages.dev/robots.txt | Crawler directives. |

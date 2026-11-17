@@ -1,0 +1,25 @@
+# PhotoKit
+
+> Free, browser-native image optimization studio. Compress to target file-size limits, resize dimensions with aspect-ratio locks, and transcode formats locally in browser memory with zero server uploads.
+
+PhotoKit is a client-side web utility engineered for fast, private image processing. All image decoding, canvas manipulation, and file encoding execute locally on device hardware using HTML5 Canvas and Web APIs. Image files and pixel data are never uploaded to PhotoKit servers.
+
+Supported input and output formats: JPEG, PNG, and WebP.
+
+## Core Tools
+
+- [Image Compressor](https://photokit-app.pages.dev/compressor/): Compress JPEG and WebP images to exact target file-size limits (20KB, 50KB, 100KB, 200KB, 500KB, 1MB) using a bounded 7-step binary search algorithm, or adjust visual quality using custom sliders (1% to 100%). Original dimensions are strictly preserved by default.
+- [Image Resizer](https://photokit-app.pages.dev/resizer/): Scale pixel dimensions proportionally up to 8192px using aspect-ratio locks or quick resolution presets (Full HD 1920×1080, HD 1280×720, Web 1200×630, Square 1080×1080, Avatar 400×400). Presets use bounding-box fitting to guarantee zero cropping when locked.
+- [Image Converter](https://photokit-app.pages.dev/converter/): Transcode bidirectionally between JPEG, PNG, and WebP formats. Includes configurable background matte fills (white, black, light gray, slate gray, or custom hex) to prevent black background artifacts when converting transparent images to JPEG.
+
+## Security & Privacy Guardrails
+
+- Client-side execution: All image operations run in isolated browser memory; no image files or pixel bitmaps are transmitted to remote servers.
+- Memory protection: Enforces an 8192px maximum single dimension and a 16,777,216-pixel total surface area cap (~16.7 megapixels) to prevent browser tab crashes.
+- File integrity: Validates file headers via binary magic bytes (JPEG `FF D8 FF`, PNG `89 50 4E 47`, WebP `RIFF...WEBP`) rather than trusting file extensions alone.
+
+## Optional Resources & Complete Reference
+
+- [Full Documentation](https://photokit-app.pages.dev/llms-full.txt): Comprehensive technical reference manual detailing processing algorithms, hardware guardrails, error codes, and the complete 25-item FAQ knowledge base.
+- [Privacy Policy](https://photokit-app.pages.dev/privacy-policy/): Detailed policy covering data minimization, local processing boundaries, and optional, consent-gated Google Analytics 4 operational telemetry.
+- [PhotoKit Home](https://photokit-app.pages.dev/): Main studio workspace and tool directory.

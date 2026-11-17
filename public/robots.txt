@@ -1,3 +1,7 @@
+# LLM / AI Discoverability Documentation
+# Index: https://photokit-app.pages.dev/llms.txt
+# Full Reference: https://photokit-app.pages.dev/llms-full.txt
+
 User-agent: *
 Allow: /
 
